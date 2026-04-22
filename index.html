@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Nairobi Smart City Dashboard | Civic Tech Hub</title>
+  <!-- TailwindCSS + Font Awesome + Chart.js + Google Fonts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #f4f7fc; }
+    .dashboard-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(0px);
+      border: 1px solid #eef2f6;
+    }
+    .dashboard-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.08);
+    }
+    .status-badge {
+      @apply text-xs font-semibold px-2 py-1 rounded-full;
+    }
+    .progress-bar {
+      transition: width 0.3s ease;
+    }
+    .scrollable-list {
+      max-height: 260px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+    .form-input {
+      @apply w-full rounded-lg border border-gray-200 p-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition;
+    }
+    .btn-primary {
+      @apply bg-emerald-700 hover:bg-emerald-800 text-white font-medium py-2 px-4 rounded-lg transition shadow-sm text-sm;
+    }
+    .btn-outline {
+      @apply border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium py-1.5 px-3 rounded-lg transition text-xs;
+    }
+    .badge-road { background: #f97316; color: white; }
+    .badge-security { background: #3b82f6; color: white; }
+    .resolve-btn { background: #e2e8f0; color: #1e293b; font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 30px; transition: all 0.1s; }
+    .resolve-btn:hover { background: #cbd5e1; }
+  </style>
+</head>
+<body class="antialiased">
+
+  <div class="max-w-7xl mx-auto px-4 py-5 md:py-8">
+    <!-- Header with Nairobi essence -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-3">
+      <div>
+        <div class="flex items-center gap-2">
+          <i class="fas fa-city text-3xl text-emerald-700"></i>
+          <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Nairobi <span class="text-emerald-700">Smart City</span> Dashboard</h1>
+        </div>
+        <p class="text-gray-500 text-sm mt-1 flex items-center gap-1"><i class="fas fa-map-marker-alt text-emerald-600"></i> Real-time civic intelligence · Data-driven Nairobi</p>
+      </div>
+      <div class="bg-white/70 backdrop-blur-sm rounded-xl px-4 py-2 shadow-sm border border-gray-100">
+        <div class="flex items-center gap-2 text-gray-600">
+          <i class="far fa-clock"></i>
+          <span id="liveTimestamp" class="text-sm font-medium"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2x2 Dashboard Grid: Traffic + Weather/Pol | Public Reports + Service Requests -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- CARD 1: Traffic Monitoring (Mock real-time) -->
+      <div class="dashboard-card rounded-2xl shadow-md p-5 bg-white">
+        <div class="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-traffic-light text-amber-600 text-xl"></i>
+            <h2 class="font-semibold text-gray-800 text-lg">Traffic Monitoring</h2>
+          </div>
+          <span class="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-500"><i class="fas fa-sync-alt mr-1"></i> live mock data</span>
+        </div>
+        <!-- Congestion list + Chart -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h3 class="text-xs font-semibold uppercase text-gray-400 tracking-wide mb-2">📍 Major corridors</h3>
+            <div id="trafficListContainer" class="space-y-3">
+              <!-- dynamic list injected -->
+            </div>
+          </div>
+          <div>
+            <h3 class="text-xs font-semibold uppercase text-gray-400 tracking-wide mb-2">📊 Congestion index (%)</h3>
+            <canvas id="trafficChart" width="300" height="200" style="max-height: 180px; width:100%"></canvas>
+            <p class="text-[11px] text-gray-400 mt-2 text-center"><i class="fas fa-chart-line"></i> real-time simulation (updates every 25s)</p>
+          </div>
+        </div>
+        <div class="mt-3 text-xs text-emerald-600 bg-emerald-50 p-2 rounded-lg flex items-center gap-1"><i class="fas fa-charging-station"></i> <span>Live traffic intelligence · Nairobi Thika Road, Mombasa Road data fusion</span></div>
+      </div>
+
+      <!-- CARD 2: Pollution + Weather Tracking (Nairobi microclimate) -->
+      <div class="dashboard-card rounded-2xl shadow-md p-5 bg-white">
+        <div class="flex justify-between items-center border-b border-gray-100 pb-3 mb-3">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-cloud-sun-rain text-sky-600 text-xl"></i>
+            <h2 class="font-semibold text-gray-800 text-lg">Air Quality & Weather</h2>
+          </div>
+          <i class="fas fa-leaf text-green-600 text-sm"></i>
+        </div>
+        <div id="weatherPollutionPanel" class="space-y-4">
+          <!-- dynamic weather widgets -->
+        </div>
+        <div class="mt-3 text-xs text-slate-500 bg-slate-50 p-2 rounded-lg flex flex-wrap gap-2 justify-between"><span><i class="fas fa-chart-simple"></i> AQI based on Nairobi CBD sensors</span><span><i class="fas fa-wind"></i> mock data refresh 18s</span></div>
+      </div>
+
+      <!-- CARD 3: Public Reports (Roads + Security) - civic participation -->
+      <div class="dashboard-card rounded-2xl shadow-md p-5 bg-white">
+        <div class="flex justify-between items-center border-b border-gray-100 pb-3 mb-3 flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-bullhorn text-purple-600 text-xl"></i>
+            <h2 class="font-semibold text-gray-800 text-lg">Public Reports</h2>
+          </div>
+          <span class="text-[11px] bg-purple-50 text-purple-700 px-2 py-1 rounded-full"><i class="far fa-comment-dots"></i> Roads & Security</span>
+        </div>
+        <!-- Add report form -->
+        <div class="bg-gray-50 p-3 rounded-xl mb-4">
+          <p class="text-xs font-medium text-gray-600 mb-2"><i class="fas fa-plus-circle"></i> Report an issue (road / security)</p>
+          <div class="grid grid-cols-2 gap-2">
+            <select id="reportTypeSelect" class="form-input text-sm bg-white">
+              <option value="road">🚧 Road hazard</option>
+              <option value="security">🚨 Security concern</option>
+            </select>
+            <input type="text" id="reportLocation" placeholder="Location (e.g., CBD, Eastlands)" class="form-input text-sm">
+            <input type="text" id="reportDesc" placeholder="Brief description" class="form-input text-sm col-span-2">
+            <button id="submitPublicReportBtn" class="btn-primary col-span-2 text-sm py-1.5"><i class="fas fa-paper-plane"></i> Submit public report</button>
+          </div>
+        </div>
+        <!-- Reports list -->
+        <h3 class="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1"><i class="fas fa-list-ul"></i> Recent citizen reports</h3>
+        <div id="publicReportsList" class="scrollable-list space-y-2 pr-1">
+          <!-- dynamic public reports -->
+        </div>
+        <div class="mt-2 text-[11px] text-gray-400 border-t pt-2 flex justify-between"><span>📢 Civic participation: real-time reports</span><span>✅ resolve & track</span></div>
+      </div>
+
+      <!-- CARD 4: Service Request System (citizen to city hall) -->
+      <div class="dashboard-card rounded-2xl shadow-md p-5 bg-white">
+        <div class="flex justify-between items-center border-b border-gray-100 pb-3 mb-3">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-clipboard-list text-indigo-600 text-xl"></i>
+            <h2 class="font-semibold text-gray-800 text-lg">Service Request System</h2>
+          </div>
+          <i class="fas fa-hand-sparkles text-indigo-400"></i>
+        </div>
+        <!-- Submit request form -->
+        <div class="bg-indigo-50/40 p-3 rounded-xl mb-4">
+          <p class="text-xs font-medium text-gray-700 mb-2"><i class="fas fa-tools"></i> Request city service</p>
+          <div class="grid grid-cols-2 gap-2">
+            <select id="serviceTypeSelect" class="form-input text-sm bg-white">
+              <option value="Road Repair">🛣️ Road Repair</option>
+              <option value="Waste Collection">🗑️ Waste Collection</option>
+              <option value="Streetlight Fix">💡 Streetlight Fix</option>
+              <option value="Security Patrol">👮 Security Patrol</option>
+            </select>
+            <input type="text" id="serviceLocation" placeholder="Location (ward/street)" class="form-input text-sm">
+            <input type="text" id="serviceDesc" placeholder="Describe the issue" class="form-input text-sm col-span-2">
+            <button id="submitServiceRequestBtn" class="btn-primary col-span-2 text-sm py-1.5 bg-indigo-700 hover:bg-indigo-800"><i class="fas fa-paper-plane"></i> Submit service request</button>
+          </div>
+        </div>
+        <!-- Requests list with resolve -->
+        <div class="flex justify-between items-center mb-1"><h3 class="text-xs font-semibold text-gray-500">📌 Open requests</h3><span class="text-[10px] text-gray-400">click ✓ to resolve</span></div>
+        <div id="serviceRequestsList" class="scrollable-list space-y-2 max-h-64">
+          <!-- dynamic service requests -->
+        </div>
+        <div class="mt-2 text-[11px] text-gray-400 border-t pt-2 flex justify-between"><span>🏛️ 311-style civic engagement</span><span>📊 real-time resolution tracking</span></div>
+      </div>
+    </div>
+    
+    <!-- Data-driven insights / civic tech footer -->
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+      <div class="bg-white rounded-xl p-3 shadow-sm border flex items-center gap-3">
+        <i class="fas fa-database text-emerald-600 text-xl"></i>
+        <div><p class="font-semibold">Live data mesh</p><p class="text-gray-500 text-xs">Traffic + pollution + citizen reports in sync</p></div>
+      </div>
+      <div class="bg-white rounded-xl p-3 shadow-sm border flex items-center gap-3">
+        <i class="fas fa-chalkboard-user text-emerald-600 text-xl"></i>
+        <div><p class="font-semibold">Civic feedback loop</p><p class="text-gray-500 text-xs">Resolve reports & requests → real-time dashboard</p></div>
+      </div>
+      <div class="bg-white rounded-xl p-3 shadow-sm border flex items-center gap-3">
+        <i class="fas fa-chart-line text-emerald-600 text-xl"></i>
+        <div><p class="font-semibold">Nairobi Open Data</p><p class="text-gray-500 text-xs">Mock AQI, traffic index, public incident mapping</p></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ------------------------ MOCK DATA & GLOBAL STATE -------------------------
+    // Nairobi road network
+    const roads = ["Thika Road", "Mombasa Road", "Waiyaki Way", "Ngong Road", "Jogoo Road"];
+    let trafficCongestion = [68, 42, 55, 38, 47]; // percentages
+
+    // Pollution & weather state (Nairobi realistic ranges)
+    let weatherState = {
+      temp: 23.5,
+      humidity: 64,
+      wind: 12,
+      aqi: 58,
+      pm25: 34,
+      condition: "Partly Cloudy"
+    };
+
+    // Public Reports (roads + security)
+    let publicReports = [
+      { id: "rep1", type: "road", description: "Deep pothole near Globe Roundabout", location: "Ngong Road", status: "Reported", timestamp: new Date(Date.now() - 3600000).toLocaleTimeString() },
+      { id: "rep2", type: "security", description: "Suspicious activity at bus stage", location: "CBD, Moi Avenue", status: "Under review", timestamp: new Date(Date.now() - 7200000).toLocaleTimeString() },
+      { id: "rep3", type: "road", description: "Missing manhole cover", location: "Eastlands, Pipeline", status: "Reported", timestamp: new Date(Date.now() - 86400000).toLocaleTimeString() },
+      { id: "rep4", type: "security", description: "Street lighting completely off", location: "Kasarani", status: "Acknowledged", timestamp: new Date(Date.now() - 43200000).toLocaleTimeString() }
+    ];
+
+    // Service Requests (city services)
+    let serviceRequests = [
+      { id: "sr1", type: "Road Repair", description: "Huge cracks on Southern Bypass", location: "Lang'ata", status: "Pending", timestamp: new Date(Date.now() - 10800000).toLocaleString() },
+      { id: "sr2", type: "Waste Collection", description: "Overflowing skip at market", location: "Kawangware", status: "In Progress", timestamp: new Date(Date.now() - 7200000).toLocaleString() },
+      { id: "sr3", type: "Streetlight Fix", description: "Two weeks dark street", location: "Kilimani, Argwings Kodhek", status: "Pending", timestamp: new Date(Date.now() - 43200000).toLocaleString() }
+    ];
+
+    let trafficChartInstance = null;
+
+    // Helper: generate random traffic variations (civic simulation)
+    function randomTrafficUpdate() {
+      return trafficCongestion.map(val => {
+        let change = Math.floor(Math.random() * 11) - 5; // -5 to +5
+        let newVal = val + change;
+        return Math.min(95, Math.max(18, newVal));
+      });
+    }
+
+    // Weather mock refresh (Nairobi variation)
+    function updateWeatherMock() {
+      weatherState.temp = +(weatherState.temp + (Math.random() * 1.2 - 0.6)).toFixed(1);
+      weatherState.temp = Math.min(29, Math.max(16, weatherState.temp));
+      weatherState.humidity = Math.min(85, Math.max(45, weatherState.humidity + (Math.random() * 6 - 3)));
+      weatherState.wind = +(weatherState.wind + (Math.random() * 2 - 1)).toFixed(1);
+      weatherState.wind = Math.min(22, Math.max(4, weatherState.wind));
+      let aqiChange = Math.floor(Math.random() * 9) - 4;
+      weatherState.aqi = Math.min(145, Math.max(28, weatherState.aqi + aqiChange));
+      weatherState.pm25 = Math.floor(weatherState.aqi * 0.65);
+      let conditions = ["Sunny", "Partly Cloudy", "Light Breeze", "Hazy", "Clear Sky"];
+      weatherState.condition = conditions[Math.floor(Math.random() * conditions.length)];
+      renderWeatherPollution();
+    }
+
+    // ----- RENDER TRAFFIC (list + chart) -----
+    function renderTrafficList() {
+      const container = document.getElementById("trafficListContainer");
+      if (!container) return;
+      container.innerHTML = roads.map((road, idx) => {
+        let congestion = trafficCongestion[idx];
+        let levelText = congestion < 35 ? "Low" : (congestion < 65 ? "Medium" : "High");
+        let barColor = congestion < 35 ? "bg-green-500" : (congestion < 65 ? "bg-amber-500" : "bg-red-500");
+        return `
+          <div>
+            <div class="flex justify-between text-xs font-medium mb-1">
+              <span>${road}</span>
+              <span class="text-gray-600">${congestion}% · ${levelText}</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div class="${barColor} progress-bar h-2 rounded-full" style="width: ${congestion}%"></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function updateTrafficChart() {
+      if (trafficChartInstance) {
+        trafficChartInstance.data.datasets[0].data = [...trafficCongestion];
+        trafficChartInstance.update();
+      }
+    }
+
+    function initTrafficChart() {
+      const ctx = document.getElementById('trafficChart').getContext('2d');
+      trafficChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: roads,
+          datasets: [{
+            label: 'Congestion (%)',
+            data: trafficCongestion,
+            backgroundColor: 'rgba(245, 158, 11, 0.7)',
+            borderRadius: 8,
+            borderSkipped: false,
+            barPercentage: 0.65
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } } },
+          scales: { y: { max: 100, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Traffic intensity %' } } }
+        }
+      });
+    }
+
+    function refreshTraffic(updateChart = true) {
+      renderTrafficList();
+      if (updateChart && trafficChartInstance) updateTrafficChart();
+    }
+
+    // ----- RENDER WEATHER/POLLUTION -----
+    function renderWeatherPollution() {
+      const panel = document.getElementById("weatherPollutionPanel");
+      if (!panel) return;
+      const aqiLevel = weatherState.aqi <= 50 ? "Good" : (weatherState.aqi <= 100 ? "Moderate" : "Unhealthy");
+      const aqiColor = weatherState.aqi <= 50 ? "text-green-600" : (weatherState.aqi <= 100 ? "text-amber-600" : "text-red-600");
+      panel.innerHTML = `
+        <div class="flex justify-between items-center">
+          <div><i class="fas fa-temperature-high text-red-500 text-xl"></i><span class="ml-2 font-bold text-2xl">${weatherState.temp}°C</span></div>
+          <div class="text-right"><i class="fas fa-cloud-sun"></i> ${weatherState.condition}</div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-center text-sm bg-gray-50 p-2 rounded-xl">
+          <div><i class="fas fa-tint text-blue-400"></i><p class="text-xs">${Math.floor(weatherState.humidity)}%<br>Humidity</p></div>
+          <div><i class="fas fa-wind text-gray-500"></i><p class="text-xs">${weatherState.wind} km/h<br>Wind</p></div>
+          <div><i class="fas fa-leaf ${aqiColor}"></i><p class="text-xs">AQI ${weatherState.aqi}<br>${aqiLevel}</p></div>
+        </div>
+        <div class="bg-gradient-to-r from-gray-50 to-gray-100 p-2 rounded-lg flex justify-between items-center">
+          <span class="text-xs"><i class="fas fa-smog"></i> PM2.5: ${weatherState.pm25} µg/m³</span>
+          <span class="text-xs"><i class="fas fa-chart-line"></i> Nairobi West sensor</span>
+        </div>
+      `;
+    }
+
+    // ----- PUBLIC REPORTS RENDER + resolve logic -----
+    function renderPublicReports() {
+      const container = document.getElementById("publicReportsList");
+      if (!container) return;
+      if (publicReports.length === 0) {
+        container.innerHTML = `<div class="text-center text-gray-400 text-sm py-4"><i class="far fa-folder-open"></i> No reports yet</div>`;
+        return;
+      }
+      container.innerHTML = publicReports.map(report => `
+        <div class="bg-white border border-gray-100 rounded-xl p-2 shadow-sm flex justify-between items-start gap-2">
+          <div class="flex-1">
+            <div class="flex items-center gap-1 flex-wrap">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${report.type === 'road' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}">${report.type === 'road' ? '🚧 Road' : '🔒 Security'}</span>
+              <span class="text-[10px] text-gray-400">${report.timestamp}</span>
+              <span class="text-[10px] bg-gray-100 px-1.5 rounded-full">${report.status}</span>
+            </div>
+            <p class="text-sm font-medium mt-1">${escapeHtml(report.description)}</p>
+            <p class="text-xs text-gray-500"><i class="fas fa-location-dot"></i> ${escapeHtml(report.location)}</p>
+          </div>
+          <button data-id="${report.id}" class="resolve-report-btn resolve-btn"><i class="fas fa-check-circle"></i> Resolve</button>
+        </div>
+      `).join("");
+      // attach resolve listeners
+      document.querySelectorAll('.resolve-report-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = btn.getAttribute('data-id');
+          const report = publicReports.find(r => r.id === id);
+          if (report && report.status !== "Resolved") {
+            report.status = "Resolved";
+            renderPublicReports();
+          }
+        });
+      });
+    }
+
+    function addPublicReport(type, location, description) {
+      if (!location.trim() || !description.trim()) return false;
+      const newReport = {
+        id: "rep" + Date.now() + Math.random().toString(36).substr(2, 5),
+        type: type,
+        description: description.trim(),
+        location: location.trim(),
+        status: "Reported",
+        timestamp: new Date().toLocaleTimeString()
+      };
+      publicReports.unshift(newReport);
+      renderPublicReports();
+      return true;
+    }
+
+    // ----- SERVICE REQUESTS RENDER + resolve -----
+    function renderServiceRequests() {
+      const container = document.getElementById("serviceRequestsList");
+      if (!container) return;
+      if (serviceRequests.length === 0) {
+        container.innerHTML = `<div class="text-center text-gray-400 text-sm py-4"><i class="fas fa-concierge-bell"></i> No service requests</div>`;
+        return;
+      }
+      container.innerHTML = serviceRequests.map(req => `
+        <div class="bg-white border border-indigo-50 rounded-xl p-2 shadow-sm flex justify-between items-start gap-2">
+          <div class="flex-1">
+            <div class="flex flex-wrap gap-1 items-center">
+              <span class="text-[10px] font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">${escapeHtml(req.type)}</span>
+              <span class="text-[10px] text-gray-400">${req.timestamp}</span>
+              <span class="text-[10px] ${req.status === 'Resolved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'} px-2 py-0.5 rounded-full">${req.status}</span>
+            </div>
+            <p class="text-sm mt-1">${escapeHtml(req.description)}</p>
+            <p class="text-xs text-gray-500"><i class="fas fa-map-pin"></i> ${escapeHtml(req.location)}</p>
+          </div>
+          ${req.status !== 'Resolved' ? `<button data-id="${req.id}" class="resolve-service-btn resolve-btn"><i class="fas fa-check-circle"></i> Resolve</button>` : `<span class="text-green-600 text-xs"><i class="fas fa-check-double"></i> Done</span>`}
+        </div>
+      `).join("");
+      document.querySelectorAll('.resolve-service-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = btn.getAttribute('data-id');
+          const req = serviceRequests.find(r => r.id === id);
+          if (req && req.status !== "Resolved") {
+            req.status = "Resolved";
+            renderServiceRequests();
+          }
+        });
+      });
+    }
+
+    function addServiceRequest(type, location, description) {
+      if (!location.trim() || !description.trim()) return false;
+      const newRequest = {
+        id: "sr" + Date.now() + Math.random().toString(36).substr(2, 6),
+        type: type,
+        description: description.trim(),
+        location: location.trim(),
+        status: "Pending",
+        timestamp: new Date().toLocaleString()
+      };
+      serviceRequests.unshift(newRequest);
+      renderServiceRequests();
+      return true;
+    }
+
+    // simple XSS prevention
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+        return c;
+      });
+    }
+
+    // live timestamp
+    function updateTimestamp() {
+      const now = new Date();
+      document.getElementById("liveTimestamp").innerHTML = now.toLocaleString('en-KE', { hour12: false });
+    }
+    
+    // Periodic tasks: traffic mock update, weather update
+    function startMockDataCycles() {
+      // traffic update every 25 seconds
+      setInterval(() => {
+        trafficCongestion = randomTrafficUpdate();
+        renderTrafficList();
+        if (trafficChartInstance) {
+          trafficChartInstance.data.datasets[0].data = [...trafficCongestion];
+          trafficChartInstance.update();
+        }
+      }, 25000);
+      // weather/pollution update every 18 seconds
+      setInterval(() => {
+        updateWeatherMock();
+      }, 18000);
+      // time update
+      setInterval(() => updateTimestamp(), 1000);
+    }
+
+    // ----- EVENT LISTENERS & INITIALIZATION -----
+    document.addEventListener("DOMContentLoaded", () => {
+      initTrafficChart();
+      renderTrafficList();
+      renderWeatherPollution();
+      renderPublicReports();
+      renderServiceRequests();
+      updateTimestamp();
+      
+      // Public report submit
+      const submitReportBtn = document.getElementById("submitPublicReportBtn");
+      if (submitReportBtn) {
+        submitReportBtn.addEventListener("click", () => {
+          const type = document.getElementById("reportTypeSelect").value;
+          const location = document.getElementById("reportLocation").value;
+          const desc = document.getElementById("reportDesc").value;
+          if (!location || !desc) {
+            alert("Please enter location and description for the report.");
+            return;
+          }
+          addPublicReport(type, location, desc);
+          document.getElementById("reportLocation").value = "";
+          document.getElementById("reportDesc").value = "";
+        });
+      }
+      
+      // Service request submit
+      const submitServiceBtn = document.getElementById("submitServiceRequestBtn");
+      if (submitServiceBtn) {
+        submitServiceBtn.addEventListener("click", () => {
+          const type = document.getElementById("serviceTypeSelect").value;
+          const location = document.getElementById("serviceLocation").value;
+          const desc = document.getElementById("serviceDesc").value;
+          if (!location || !desc) {
+            alert("Please fill location and description for the service request.");
+            return;
+          }
+          addServiceRequest(type, location, desc);
+          document.getElementById("serviceLocation").value = "";
+          document.getElementById("serviceDesc").value = "";
+        });
+      }
+      
+      startMockDataCycles();
+    });
+  </script>
+</body>
+</html>
